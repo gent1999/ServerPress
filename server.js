@@ -13,6 +13,7 @@ const PORT = process.env.PORT || 5100;
 const ALLOWED_ORIGINS = [
   'https://pluggpress.com',
   'https://www.pluggpress.com',
+  'https://pluggpress.vercel.app',
   // Allow localhost in dev
   'http://localhost:5173',
   'http://localhost:3000',
