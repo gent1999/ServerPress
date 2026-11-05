@@ -1,26 +1,27 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-// Lazy init so a missing key doesn't crash the server at boot.
-let _resend = null;
-const getResend = () => {
-  if (!_resend) {
-    if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY is not set');
-    _resend = new Resend(process.env.RESEND_API_KEY);
-  }
-  return _resend;
+// contact@pluggpress.com is hosted on Namecheap Private Email (mx1/mx2.privateemail.com).
+const createTransporter = () => {
+  return nodemailer.createTransport({
+    host: 'mail.privateemail.com',
+    port: 587,
+    secure: false, // STARTTLS
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  });
 };
-
-const fromAddress = () => process.env.CONTACT_FROM_EMAIL || process.env.OWNER_EMAIL || 'contact@pluggpress.com';
 
 /**
  * Notify the PluggPress owner inbox that someone submitted the contact form.
  * Never throws -- a failed notification shouldn't fail the contact form submission.
  */
 export async function sendContactNotification({ name, email, service, message }) {
-  if (!process.env.OWNER_EMAIL) return;
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD || !process.env.OWNER_EMAIL) return;
   try {
-    const { error } = await getResend().emails.send({
-      from: `PluggPress <${fromAddress()}>`,
+    await createTransporter().sendMail({
+      from: process.env.EMAIL_USER,
       to: process.env.OWNER_EMAIL,
       replyTo: email,
       subject: `📬 New contact form message — ${name}${service ? ` (${service})` : ''}`,
@@ -43,7 +44,6 @@ export async function sendContactNotification({ name, email, service, message })
         </div>
       `,
     });
-    if (error) throw new Error(error.message);
     console.log('✅ Contact notification email sent successfully');
   } catch (error) {
     console.error('❌ Error sending contact notification email:', error.message);
