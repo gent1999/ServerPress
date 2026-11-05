@@ -1,5 +1,6 @@
 import express from 'express';
 import pool from '../config/db.js';
+import { sendContactNotification } from '../utils/email.js';
 
 const router = express.Router();
 
@@ -28,6 +29,7 @@ router.post('/', async (req, res) => {
   if (!pool) {
     // DB isn't wired up yet — log so the lead isn't lost, but don't fail the request.
     console.log('📬 New PluggPress lead (no DB configured):', { name, email, service, message });
+    sendContactNotification({ name, email, service, message }).catch((err) => console.error('Contact email error:', err.message));
     return res.json({ message: 'Message received.' });
   }
 
@@ -37,6 +39,7 @@ router.post('/', async (req, res) => {
       `INSERT INTO leads (name, email, service, message) VALUES ($1, $2, $3, $4)`,
       [name, email, service || null, message]
     );
+    sendContactNotification({ name, email, service, message }).catch((err) => console.error('Contact email error:', err.message));
     res.json({ message: 'Message received.' });
   } catch (error) {
     console.error('Error saving lead:', error);
