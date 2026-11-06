@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import contactRoutes from "./routes/contact.js";
 import authRoutes from "./routes/auth.js";
 import leadsRoutes from "./routes/leads.js";
+import analyticsRoutes from "./routes/analytics.js";
 import authMiddleware from "./middleware/auth.js";
 
 dotenv.config();
@@ -78,6 +79,7 @@ app.use("/api/auth", (req, res, next) => {
   next();
 }, authRoutes);
 app.use("/api/leads", leadsRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 app.listen(PORT, () => {
   console.log(`✅ ServerPress listening on port ${PORT}`);
