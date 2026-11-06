@@ -2,6 +2,9 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import contactRoutes from "./routes/contact.js";
+import authRoutes from "./routes/auth.js";
+import leadsRoutes from "./routes/leads.js";
+import authMiddleware from "./middleware/auth.js";
 
 dotenv.config();
 
@@ -49,6 +52,15 @@ const contactLimiter = rateLimit({
   message: { message: 'Too many submissions, please try again later.' },
 });
 
+// Admin login: 10 attempts per 15 minutes per IP, to slow down brute-forcing.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many login attempts, please try again later.' },
+});
+
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -56,6 +68,16 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/contact", contactLimiter, contactRoutes);
+app.use("/api/auth/login", loginLimiter);
+// /me and /registration-status need the admin to already be verified;
+// /register and /login must stay public (there's no token to check yet).
+app.use("/api/auth", (req, res, next) => {
+  if (req.path === '/me') {
+    return authMiddleware(req, res, next);
+  }
+  next();
+}, authRoutes);
+app.use("/api/leads", leadsRoutes);
 
 app.listen(PORT, () => {
   console.log(`✅ ServerPress listening on port ${PORT}`);
